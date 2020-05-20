@@ -160,6 +160,7 @@
     DECL(klimalogg) \
     DECL(visonic_powercode) \
     DECL(eurochron_efth800) \
+    DECL(tfa_303161) \
 
     /* Add new decoders here. */
 
