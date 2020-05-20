@@ -15,7 +15,7 @@ Protocol as reverse engineered by https://github.com/iotzo
 
 36 Bits (9 nibbles)
 
-| Type: | IIIICCII | B???TTTT | TTTTTSSS | HHHHHHH1 | XXXX |
+| Type: | IIIICCII | B???TTTT | TTTTTSSS | RRRRRRRR | XXXX |
 | ----- | -------- | -------- | -------- | -------- | ---- |
 | BIT/8 | 76543210 | 76543210 | 76543210 | 76543210 | 7654 |
 | BIT/A | 01234567 | 89012345 | 57890123 | 45678901 | 2345 |
@@ -26,6 +26,7 @@ Protocol as reverse engineered by https://github.com/iotzo
 - B: low battery
 - T: temperature
 - S: sign
+- R: Rain counter
 - X: checksum
 - ?: unknown meaning
 - all values are LSB-first, so need to be reversed before presentation
@@ -37,10 +38,10 @@ Protocol as reverse engineered by https://github.com/iotzo
     negative temps example:
     [03] {36} e4 4c 1f 73 f0 : 111001000100 110000011 111 0111001 11111 temp: -12.4
 
-    Humidity:
-    hum num-->25-32bit(7bits) in reverse order : in this case "1001110"=78
-    humidity=num-28 --> 78-28=50
-
+    Raincounter:
+    raincount num-->25-32bit(8bits) in reverse order : in this case "10011101"=185
+    rain=185+0.4l/m2
+    
 I have channel number bits(5,6 in reverse order) and low battery bit(9).
 It seems that the 1,2,3,4,7,8 bits changes randomly on every reset/battery change.
 */
@@ -79,7 +80,7 @@ static int tfa_303161_callback(r_device *decoder, bitbuffer_t *bitbuffer)
     if (checksum != (sum_nibbles & 0xF))
         return DECODE_FAIL_MIC; // wrong checksum
 
-  /* IIIICCII B???TTTT TTTTTSSS HHHHHHH1 XXXX */
+  /* IIIICCII B???TTTT TTTTTSSS RRRRRRRR XXXX */
     int negative_sign = (b[2] & 7);
     int temp          = ((rb[2]&0x1F) << 4) | (rb[1]>> 4);
     int rain_counter      = (rb[3] & 0xFF);
@@ -90,7 +91,7 @@ static int tfa_303161_callback(r_device *decoder, bitbuffer_t *bitbuffer)
     float tempC = (negative_sign ? -( (1<<9) - temp ) : temp ) * 0.1F;
 
     data = data_make(
-            "model",         "",            DATA_STRING, _X("TFA-30.3161","TFA 303161 Rain gauge and temperature"),
+            "model",         "",            DATA_STRING, _X("TFA-30.3161","TFA 303161 rain gauge and temperature"),
             "id",            "Id",          DATA_INT, sensor_id,
             "channel",       "Channel",     DATA_INT, channel,
             "battery",       "Battery",     DATA_STRING, battery_low ? "LOW" : "OK",
